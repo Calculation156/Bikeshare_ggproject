@@ -1,0 +1,57 @@
+--Join all tables and clean data
+WITH A1 AS (
+SELECT
+  ride_id, started_at, ended_at, member_casual
+FROM `Bike_data.202102_tripdata`
+WHERE
+  (EXTRACT(DAY FROM started_at) = EXTRACT(DAY FROM ended_at))
+  AND (EXTRACT(TIME FROM ended_at) > EXTRACT(TIME FROM started_at))
+
+UNION ALL
+
+SELECT
+  ride_id, started_at, ended_at, member_casual
+FROM `Bike_data.202103_tripdata`
+WHERE
+  (EXTRACT(DAY FROM started_at) = EXTRACT(DAY FROM ended_at))
+  AND (EXTRACT(TIME FROM ended_at) > EXTRACT(TIME FROM started_at))
+
+UNION ALL
+
+SELECT
+  ride_id, started_at, ended_at, member_casual
+FROM `Bike_data.202104_tripdata`
+WHERE
+  (EXTRACT(DAY FROM started_at) = EXTRACT(DAY FROM ended_at))
+  AND (EXTRACT(TIME FROM ended_at) > EXTRACT(TIME FROM started_at))
+
+UNION ALL
+
+SELECT
+  ride_id, started_at, ended_at, member_casual
+FROM `Bike_data.202105_tripdata`
+WHERE
+  (EXTRACT(DAY FROM started_at) = EXTRACT(DAY FROM ended_at))
+  AND (EXTRACT(TIME FROM ended_at) > EXTRACT(TIME FROM started_at))
+),
+--Add calculated column, ride_length
+A2 AS (
+SELECT 
+  ride_id,
+  started_at,
+  ended_at,
+  (EXTRACT(HOUR FROM ended_at) - EXTRACT(HOUR FROM started_at))*60 + (EXTRACT(MINUTE FROM ended_at) - EXTRACT(MINUTE FROM started_at)) AS Ride_length,
+  Member_casual
+FROM A1
+)
+--Calculate basic stats
+SELECT
+  Member_casual,
+  COUNT(ride_id) AS Numberofrides,
+  MAX (Ride_length) AS Max_Length,
+  MIN (Ride_length) AS Min_Length,
+  avg(Ride_length) AS AVG_Length,
+  STDDEV_SAMP(Ride_length) AS STD_Length
+FROM A2
+GROUP BY Member_casual
+--Combine with what we know about the pricing policies, the result suggests casual rides use bike for unexpected or impulsive needs, or longer rides that occur once in a while. Meanwhile, the membership users use bike for habitual activities such communting to work, which explains why the STD_Length and average length are lower
