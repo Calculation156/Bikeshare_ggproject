@@ -1,0 +1,80 @@
+--JOIN tables
+WITH A1 AS (
+SELECT
+  ride_id, started_at, ended_at, member_casual
+FROM `Bike_data.202102_tripdata`
+WHERE
+  (EXTRACT(DAY FROM started_at) = EXTRACT(DAY FROM ended_at))
+  AND (EXTRACT(TIME FROM ended_at) > EXTRACT(TIME FROM started_at))
+
+UNION ALL
+
+SELECT
+  ride_id, started_at, ended_at, member_casual
+FROM `Bike_data.202103_tripdata`
+WHERE
+  (EXTRACT(DAY FROM started_at) = EXTRACT(DAY FROM ended_at))
+  AND (EXTRACT(TIME FROM ended_at) > EXTRACT(TIME FROM started_at))
+
+UNION ALL
+
+SELECT
+  ride_id, started_at, ended_at, member_casual
+FROM `Bike_data.202104_tripdata`
+WHERE
+  (EXTRACT(DAY FROM started_at) = EXTRACT(DAY FROM ended_at))
+  AND (EXTRACT(TIME FROM ended_at) > EXTRACT(TIME FROM started_at))
+
+UNION ALL
+
+SELECT
+  ride_id, started_at, ended_at, member_casual
+FROM `Bike_data.202105_tripdata`
+WHERE
+  (EXTRACT(DAY FROM started_at) = EXTRACT(DAY FROM ended_at))
+  AND (EXTRACT(TIME FROM ended_at) > EXTRACT(TIME FROM started_at))
+),
+--Extract hour data
+B1 AS (
+SELECT 
+  ride_id,
+  started_at,
+  ended_at,
+  EXTRACT(HOUR FROM started_at) AS Time_Started,
+  (EXTRACT(HOUR FROM ended_at)-EXTRACT(HOUR FROM started_at))*60 + (EXTRACT(MINUTE FROM ended_at)-EXTRACT(MINUTE FROM started_at)) AS Ride_length,
+  member_casual
+FROM A1
+),
+--Distribution of member rides
+C1 AS (
+SELECT
+  Time_Started,
+  COUNT(CASE WHEN Ride_length <= 30 THEN ride_id END) AS M_under30Rides,
+  COUNT(CASE WHEN (Ride_length > 30 AND Ride_length <=60) THEN ride_id END) AS M_between30and60Rides,
+  COUNT(CASE WHEN Ride_length > 60 THEN ride_id END) AS M_over60Rides
+FROM B1
+WHERE member_casual = "member"
+GROUP BY Time_Started,member_casual
+),
+--Distribution of casual rides
+C2 AS (
+SELECT
+  Time_Started,
+  COUNT(CASE WHEN Ride_length <= 30 THEN ride_id END) AS C_under30Rides,
+  COUNT(CASE WHEN (Ride_length > 30 AND Ride_length <=60) THEN ride_id END) AS C_between30and60Rides,
+  COUNT(CASE WHEN Ride_length > 60 THEN ride_id END) AS C_over60Rides
+FROM B1
+WHERE member_casual = "casual"
+GROUP BY Time_Started,member_casual
+)
+SELECT
+  C1.Time_Started,
+  C1.M_under30Rides,
+  C1.M_between30and60Rides,
+  C1.M_over60Rides,
+  C2.C_under30Rides,
+  C2.C_between30and60Rides,
+  C2.C_over60Rides
+FROM C1
+LEFT JOIN C2 ON C1.Time_Started=C2.Time_Started
+ORDER BY Time_Started ASC
