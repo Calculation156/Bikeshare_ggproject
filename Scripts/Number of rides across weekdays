@@ -1,0 +1,73 @@
+
+WITH A1 AS (
+SELECT
+  ride_id, started_at, ended_at, member_casual
+FROM `Bike_data.202102_tripdata`
+WHERE
+  (EXTRACT(DAY FROM started_at) = EXTRACT(DAY FROM ended_at))
+  AND (EXTRACT(TIME FROM ended_at) > EXTRACT(TIME FROM started_at))
+
+UNION ALL
+
+SELECT
+  ride_id, started_at, ended_at, member_casual
+FROM `Bike_data.202103_tripdata`
+WHERE
+  (EXTRACT(DAY FROM started_at) = EXTRACT(DAY FROM ended_at))
+  AND (EXTRACT(TIME FROM ended_at) > EXTRACT(TIME FROM started_at))
+
+UNION ALL
+
+SELECT
+  ride_id, started_at, ended_at, member_casual
+FROM `Bike_data.202104_tripdata`
+WHERE
+  (EXTRACT(DAY FROM started_at) = EXTRACT(DAY FROM ended_at))
+  AND (EXTRACT(TIME FROM ended_at) > EXTRACT(TIME FROM started_at))
+
+UNION ALL
+
+SELECT
+  ride_id, started_at, ended_at, member_casual
+FROM `Bike_data.202105_tripdata`
+WHERE
+  (EXTRACT(DAY FROM started_at) = EXTRACT(DAY FROM ended_at))
+  AND (EXTRACT(TIME FROM ended_at) > EXTRACT(TIME FROM started_at))
+),
+--Create weekday column
+B1 AS (
+SELECT 
+  ride_id,
+  started_at,
+  ended_at,
+  EXTRACT(DAYOFWEEK FROM ended_at) AS WEEKDAY,
+  Member_casual
+FROM A1
+),
+--Calculate distribution of trips on Weeekdays, Member
+C1 AS (
+SELECT
+  WEEKDAY,
+  COUNT(WEEKDAY) AS Member
+FROM B1
+GROUP BY WEEKDAY, Member_casual
+HAVING Member_casual = "member"
+ORDER BY WEEKDAY ASC
+),
+--Calculate distribution of trips on Weeekdays, Casual
+C2 AS (
+  SELECT
+  WEEKDAY,
+  COUNT(WEEKDAY) AS Casual
+FROM B1
+GROUP BY WEEKDAY, Member_casual
+HAVING Member_casual = "casual"
+ORDER BY WEEKDAY ASC
+)
+SELECT
+  C1.WEEKDAY,
+  C1.Member,
+  C2.Casual
+FROM C1
+LEFT JOIN C2 ON C1.WEEKDAY=C2.WEEKDAY
+ORDER BY C1.WEEKDAY ASC
